@@ -1,9 +1,11 @@
 include AUTHORS
 include ChangeLog
 include COPYING
+include NEWS
 include README
 include picc
 include picc-objdump
 include setup.py
+include bump-version.sh
 recursive-include data *
 recursive-include lib/picc *.py
