@@ -1,3 +1,10 @@
 2016-02-26  Antonio Serrano Hernandez  <toni.serranoh@gmail.com>
 
+    * bump-version.sh: New helper script.
+    * picc, picc-objdump, linker.py, coff.py, error.py:
+    Added description and bumped version to 0.1.0.
+    * setup.py: Bumped version to 0.1.0.
+
+2016-02-26  Antonio Serrano Hernandez  <toni.serranoh@gmail.com>
+
     * Initial version.
