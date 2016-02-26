@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+'''description'''
+
+import argparse
+import os
+import sys
+# Temporary
+sys.path.append('./modules')
+import picc.coff as coff
+import picc.linker as linker
+
+__script__ = 'picc'
+__author__ = 'Antonio Serrano Hernandez'
+__copyright__ = 'Copyright (C) 2016 Antonio Serrano Hernandez'
+__version__ = '0.0.1'
+__license__ = 'GPL'
+__maintainer__ = 'Antonio Serrano Hernandez'
+__email__ = 'toni.serranoh@gmail.com'
+__status__ = 'Development'
+__homepage__ = 'https://github.com/aserranoh/picc'
+
+VERSION_STRING = '''\
+%(prog)s {version}
+{copyright}
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.\
+'''.format(version=__version__, copyright=__copyright__)
+
+HELP_EPILOG = '''\
+Report bugs to: {email}
+picc home page: {homepage}
+'''.format(email=__email__, homepage=__homepage__)
+
+def main():
+    parser = argparse.ArgumentParser(prog=__script__, epilog=HELP_EPILOG,
+        formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('objfiles', help='object files to link', nargs='+')
+    parser.add_argument('-o', '--output',
+        help='alternate name for output file', default='a.hex')
+    parser.add_argument('--version', action='version', version=VERSION_STRING)
+    args = parser.parse_args()
+
+    objects = [coff.readcoff(f) for f in args.objfiles]
+    h = linker.link(objects)
+    h.write_hex_file(args.output)
+
+if __name__ == '__main__':
+    main()
+

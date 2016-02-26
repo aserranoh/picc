@@ -1,0 +1,47 @@
+picc - PIC microcontrollers linker.
+
+  Copyright (C) 2015  Antonio Serrano Hernandez
+
+  Copying and distribution of this file, with or without modification,
+  are permitted in any medium without royalty provided the copyright
+  notice and this notice are preserved.
+
+picc is provided "as is" with no warranty.  The exact terms
+under which you may use and (re)distribute this program are detailed
+in the GNU General Public License, in the file COPYING.
+
+# Overview
+
+picc is a linker for PIC microcontrollers' code objects in the COFF format.
+
+# Building and Installing picc
+
+To build and install picc, follow the well-known sequence of commands:
+
+    ./configure
+    make
+    sudo make install
+
+# Usage
+
+picc
+----
+To link several code objects, just type the following command:
+
+picc object1.o object2.o object3.o
+
+That will generate the file a.hex, with the linked code. If you want to give
+a name to the output hex file use the -o option:
+
+picc object1.o object2.o object3.o -o program.hex
+
+picc-objdump
+------------
+To inspect the contents of an object file, type:
+
+picc-objdump object.o
+
+# Bug report
+
+Send bug reports to toni.serranoh@gmail.com.
+
