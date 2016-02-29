@@ -22,6 +22,7 @@ along with picc; see the file COPYING.  If not, see
 
 from __future__ import print_function
 import intelhex
+import os
 import struct
 import xml.etree.ElementTree as ET
 import picc.coff as coff
@@ -35,7 +36,9 @@ __maintainer__ = 'Antonio Serrano Hernandez'
 __email__ = 'toni.serranoh@gmail.com'
 __status__ = 'Development'
 
-_PROCESSORS_FILE = 'processors.xml'
+_DATA_PATH = '/usr/share/picc'
+_PROCESSORS_FILENAME = 'processors.xml'
+_PROCESSORS_FILE = os.path.join(_DATA_PATH, _PROCESSORS_FILENAME)
 
 _RELOCT_CALL = 1
 _RELOCT_GOTO = 2

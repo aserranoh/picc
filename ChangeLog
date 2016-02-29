@@ -1,3 +1,7 @@
+2016-02-29  Antonio Serrano Hernandez  <toni.serranoh@gmail.com>
+
+    * linker.py (_PROCESSORS_FILE): Corrected path to data file.
+
 2016-02-26  Antonio Serrano Hernandez  <toni.serranoh@gmail.com>
 
     * bump-version.sh: New helper script.
