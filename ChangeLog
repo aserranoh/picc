@@ -1,3 +1,7 @@
+2016-02-28  Antonio Serrano Hernandez  <toni.serranoh@gmail.com>
+
+    * error.py (fatal, fatalf, errorf, errorfa, warnf): Added colored messages.
+
 2016-02-26  Antonio Serrano Hernandez  <toni.serranoh@gmail.com>
 
     * bump-version.sh: New helper script.
