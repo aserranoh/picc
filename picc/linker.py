@@ -20,13 +20,11 @@ along with picc; see the file COPYING.  If not, see
 <http://www.gnu.org/licenses/>.
 '''
 
-from __future__ import print_function
 import intelhex
 import os
 import struct
 import xml.etree.ElementTree as ET
-import picc.coff as coff
-import picc.error as error
+from . import coff, error
 
 __author__ = 'Antonio Serrano Hernandez'
 __copyright__ = 'Copyright (C) 2016 Antonio Serrano Hernandez'
@@ -82,7 +80,8 @@ def bra_rcall_patch(c):
     offset = int((c.value - c.address - 2)/2)
     if offset < -1024 or offset > 1023:
         error.errorfa(c.filename, c.section.name, c.offset,
-            'relative jump too long (use goto or call instead)')
+            "relative jump too long (use {b}'goto'{re} or {b}'call'{re} "
+            "instead)".format(b=error.BOLD, re=error.RESET))
     else:
         opcode = c.opcode | (offset & 0x07ff)
     return opcode
@@ -92,7 +91,8 @@ def condbra_patch(c):
     offset = int((c.value - c.address - 2)/2)
     if offset < -128 or offset > 127:
         error.errorfa(c.filename, c.section.name, c.offset,
-            'conditional branch too long (use goto instead)')
+            "conditional branch too long (use {b}'goto'{re} instead)".format(
+            b=error.BOLD, re=error.RESET))
     else:
         opcode = c.opcode | (offset & 0xff)
     return opcode
@@ -133,7 +133,7 @@ _RELOCT_DICT = {
     _RELOCT_SCNEND_LFSR2: unimplemented_patch,
 }
 
-class RelocationContext(object):
+class _RelocationContext(object):
     '''Gathers information to perform a relocation.'''
 
     def __init__(self, filename, section, offset, value, picinfo):
@@ -149,7 +149,8 @@ class RelocationContext(object):
 
     @property
     def opcode(self):
-        return self.section.data[int(self.offset/2)]
+        return struct.unpack(
+            '=H', self.section.data[self.offset:self.offset + 2])[0]
 
 class _PicInfo(object):
     '''Holds some information about a PIC processor.'''
@@ -269,17 +270,19 @@ def _loadpicinfo(processor):
             if processor == p.attrib['name']:
                 return _PicInfo(processor, int(p.attrib['ram'], 16),
                     int(p.attrib['access'], 16), int(p.attrib['progmem'], 16))
-        error.fatal("info from processor '{}' not found".format(processor))
+        error.fatal("info from processor {b}'{proc}'{re} not found".format(
+            b=error.BOLD, re=error.RESET, proc=processor))
     except IOError as ioe:
         error.fatal('cannot load processor info: {}'.format(ioe))
     except KeyError as ke:
-        error.fatal("malformed file '{}': missing attribute {}".format(
-            _PROCESSORS_FILE, ke))
+        error.fatal("malformed file {b}'{f}'{re}: missing attribute "
+            "{attr}".format(b=error.BOLD, re=error.RESET, f=_PROCESSORS_FILE,
+            attr=ke))
 
 def _getallocator(obj, section, codemem, datamem):
     '''Returns the right allocator for the given section.'''
     allocator = None
-    if section.iscode(): allocator = codemem
+    if section.iscode() or section.isprogramdata(): allocator = codemem
     elif section.isudata(): allocator = datamem
     return allocator
 
@@ -312,13 +315,15 @@ def _allocsections(objects, picinfo, codemem, datamem):
             if s.iscode(): typemem = 'program'
             else: typemem = 'data'
             error.errorf(o.filename,
-                "No target memory available for section '{}'".format(s.name))
+                "No target memory available for section {b}'{s}'{re}".format(
+                 b=error.BOLD, re=error.RESET, s=s.name))
     # Allocate access sections
     for s, o in access_sections:
         s.paddress = datamem.alloc(s.size, start=0, end=picinfo.access)
         if s.paddress is None:
             error.errorf(o.filename,
-                "No target memory available for section '{}'".format(s.name))
+                "No target memory available for section {b}'{s}'{re}".format(
+                 b=error.BOLD, re=error.RESET, s=s.name))
     # Allocate the relocatable sections
     for s, o in relocatable_sections:
         # Get the correct allocator
@@ -326,7 +331,8 @@ def _allocsections(objects, picinfo, codemem, datamem):
         s.paddress = allocator.alloc(s.size)
         if s.paddress is None:
             error.errorf(o.filename,
-                "No target memory available for section '{}'".format(s.name))
+                "No target memory available for section {b}'{s}'{re}".format(
+                 b=error.BOLD, re=error.RESET, s=s.name))
             s.paddress = 0
 
 def _getexternals(objects):
@@ -337,9 +343,9 @@ def _getexternals(objects):
         for s in o.symbols:
             if s.isexternal() and s.isdefined():
                 if s.name in externals:
-                    error.errorf(o.filename,
-                        "duplicate symbol '{}' (first defined in '{}')".format(
-                        s.name, symfiles[s.name]))
+                    error.errorf(o.filename, "duplicate symbol {b}'{sym}'{re}"
+                        " (first defined in {b}'{f}'{re})".format(b=error.BOLD,
+                        re=error.RESET, sym=s.name, f=symfiles[s.name]))
                 else:
                     externals[s.name] = s
                     symfiles[s.name] = o.filename
@@ -347,41 +353,47 @@ def _getexternals(objects):
 
 def _applyrelocations(objects, externalsyms, picinfo):
     '''Patch the data of the code sections with the right addresses.'''
+    # Hold a set of seen symbols to avoid repeating error messages
+    undefset = set()
+    noteseen = False
     # Compile the list of code sections
     code_sections = [(s, o) for o in objects for s in o.sections[1:]
         if s.iscode()]
     for s, o in code_sections:
-        print(s.name, o.filename)
         for r in s.relocations:
-            print(r)
             # Get the value for patching
             symbol = r.symbol
-            instindex = int(r.address/2)
             if not symbol.isdefined():
                 # The symbol to use is an external symbol
                 if symbol.name not in externalsyms:
-                    error.errorfa(o.filename, s.name, r.address,
-                        'undefined symbol {}'.format(symbol.name))
+                    # Report error only the first time
+                    if symbol.name not in undefset:
+                        error.errorfa(o.filename, s.name, r.address,
+                            "undefined symbol {b}'{s}'{re}".format(
+                            b=error.BOLD, re=error.RESET, s=symbol.name))
+                        undefset.add(symbol.name)
+                        if not noteseen:
+                            error.notefa(o.filename, s.name, r.address,
+                                'each undefined symbol is reported only once')
+                            noteseen = True
                     continue
                 symbol = externalsyms[symbol.name]
             value = symbol.section.paddress + symbol.value + r.offset
-            print('value:', value, 'code:', hex(s.data[instindex]))
             # The passed addr parameter must be the address of the first byte
             # of the current instruction. As addr is in fact the index of a
             # word, this value must be multiplied by two.
-            context = RelocationContext(
+            context = _RelocationContext(
                 o.filename, s, r.address, value, picinfo)
-            s.data[instindex] = _RELOCT_DICT[r.reltype](context)
-            print(hex(s.data[instindex]))
+            s.data[r.address:r.address + 2] = struct.pack(
+                '=H', _RELOCT_DICT[r.reltype](context))
 
 def _buildhex(objects):
     '''Builds an HEX object with the binary data.'''
     ih = intelhex.IntelHex()
     for o in objects:
         for s in o.sections[1:]:
-            if s.iscode():
-                ih.puts(s.paddress, struct.pack(
-                    '={}H'.format(len(s.data)), *s.data))
+            if s.iscode() or s.isprogramdata():
+                ih.puts(s.paddress, bytes(s.data))
     return ih
 
 def link(objects):

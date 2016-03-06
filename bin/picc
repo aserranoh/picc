@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-'''picc-objdump - Inspect Microchip's PIC objects in COFF format.
+'''PIC microcontrollers linker.
+
+Links several COFF objects in Microchip's PIC assembler into a single
+program in the Intel HEX format.
 
 Copyright 2016 Antonio Serrano Hernandez
 
@@ -24,11 +27,12 @@ along with picc; see the file COPYING.  If not, see
 import argparse
 import os
 import sys
-# Temporary
-sys.path.append('./modules')
-import picc.coff as coff
 
-__script__ = 'picc-objdump'
+sys.path.insert(0, os.path.join(os.path.dirname(sys.argv[0]), '..'))
+import picc
+from picc import coff, error, linker
+
+__script__ = 'picc'
 __author__ = 'Antonio Serrano Hernandez'
 __copyright__ = 'Copyright (C) 2016 Antonio Serrano Hernandez'
 __version__ = '0.1.0'
@@ -38,35 +42,29 @@ __email__ = 'toni.serranoh@gmail.com'
 __status__ = 'Development'
 __homepage__ = 'https://github.com/aserranoh/picc'
 
-VERSION_STRING = '''\
-%(prog)s {version}
-{copyright}
-License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
-This is free software: you are free to change and redistribute it.
-There is NO WARRANTY, to the extent permitted by law.\
-'''.format(version=__version__, copyright=__copyright__)
-
-HELP_EPILOG = '''\
-Report bugs to: {email}
-picc home page: {homepage}
-'''.format(email=__email__, homepage=__homepage__)
-
 def main():
-    '''Entry point for the program picc-objdump.
-    
-    Loads the contents of the file given by parameter in a Coff object and
-    print its fields.
-    '''
-    parser = argparse.ArgumentParser(prog=__script__, epilog=HELP_EPILOG,
+    parser = argparse.ArgumentParser(prog=__script__, epilog=picc.HELP_EPILOG,
         formatter_class=argparse.RawTextHelpFormatter)
-    # Objfile is the main argument, the input file
-    parser.add_argument('objfile', help='COFF file to explore')
-    parser.add_argument('--version', action='version', version=VERSION_STRING)
+    parser.add_argument('objfiles', help='object files to link', nargs='+')
+    parser.add_argument('-o', '--output',
+        help='alternate name for output file', default='a.hex')
+    parser.add_argument('--version', action='version',
+        version=picc.VERSION_STRING)
     args = parser.parse_args()
 
-    obj = coff.readcoff(args.objfile)
-    print(obj)
+    objects = []
+    try:
+        for o in args.objfiles:
+            f = open(o, 'rb')
+            objects.append(coff.readcoff(f))
+            f.close()
+        h = linker.link(objects)
+        if not error.errors:
+            h.write_hex_file(args.output)
+    except IOError as ioe:
+        error.fatal(ioe)
 
 if __name__ == '__main__':
     main()
+    exit(0 if error.errors == 0 else 1)
 

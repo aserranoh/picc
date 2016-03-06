@@ -1,5 +1,5 @@
 
-'''coff.py - Inspect Microchip's PIC objects in COFF format.
+'''Inspect Microchip's PIC objects in COFF format.
 
 Copyright 2016 Antonio Serrano Hernandez
 
@@ -21,10 +21,8 @@ along with picc; see the file COPYING.  If not, see
 '''
 
 import datetime
-import os
 import struct
-import sys
-import picc.error as error
+from . import error
 
 __author__ = 'Antonio Serrano Hernandez'
 __copyright__ = 'Copyright (C) 2016 Antonio Serrano Hernandez'
@@ -91,14 +89,18 @@ _STORAGE_CLASSES = {
     108: 'C_LIST',
     109: 'C_SECTION',
 }
-_STYP_ABS = 0x01000
-_STYP_ACCESS = 0x08000
-_STYP_BSS = 0x00080
-_STYP_TEXT = 0x00020
-_STYP_FLAGS = {
-    _STYP_TEXT: '  Executable code.',
-    _STYP_BSS: '  Uninitialized data.',
-    _STYP_ACCESS: '  Available using access bit.',
+_STYP_ABS       = 0x01000
+_STYP_ACCESS    = 0x08000
+_STYP_BSS       = 0x00080
+_STYP_DATA_ROM  = 0x00100
+_STYP_TEXT      = 0x00020
+_STYP_FLAGS = [_STYP_TEXT, _STYP_BSS, _STYP_DATA_ROM, _STYP_ACCESS, _STYP_ABS]
+_STYP_FLAGS_STR = {
+    _STYP_TEXT:     '  Executable code.',
+    _STYP_BSS:      '  Uninitialized data.',
+    _STYP_DATA_ROM: '  Initialized data for ROM.',
+    _STYP_ACCESS:   '  Available using access bit.',
+    _STYP_ABS:      '  Absolute.'
 }
 _SYMENT_SIZE = 20
 
@@ -110,6 +112,7 @@ class Section(object):
         self.paddress = paddress
         self.vaddress = vaddress
         self.flags = flags
+        self.data = []
         self.relocations = []
         self.linenumbers = []
 
@@ -125,59 +128,63 @@ class Section(object):
     def isudata(self):
         return self.flags & _STYP_BSS
 
+    def isprogramdata(self):
+        return self.flags & _STYP_DATA_ROM
+
+    @property
+    def size(self):
+        return self._size if hasattr(self, '_size') else len(self.data)
+
+    @size.setter
+    def size(self, value):
+        self._size = value
+
     def __str__(self):
+        # Build the header
         text = ['Section Header',
                 '\nName                    ', self.name,
-                '\nPhysical address        ', str(self.paddress),
-                '\nVirtual address         ', str(self.vaddress),
+                '\nPhysical address        ', hex(self.paddress),
+                '\nVirtual address         ', hex(self.vaddress),
                 '\nSize of Section         ', str(self.size),
                 '\nNumber of Relocations   ', str(len(self.relocations)),
                 '\nNumber of Line Numbers  ', str(len(self.linenumbers)),
                 '\nFlags                   ', hex(self.flags), '\n']
         for f in _STYP_FLAGS:
             if f & self.flags:
-                text.append(_STYP_FLAGS[f])
+                text.append(_STYP_FLAGS_STR[f])
+                text.append('\n')
+
+        # Add the data if type text or program data
+        index = 0
+        if self.iscode():
+            text.append('\nData\n')
+            while index < len(self.data):
+                text.append('{:06x}:  {:02x}{:02x}\n'.format(
+                    index + self.paddress, ord(self.data[index + 1]),
+                    ord(self.data[index])))
+                index += 2
+        elif self.isprogramdata():
+            text.append('\nData\n')
+            for b in self.data:
+                text.append('{:06x}:  {:04x}\n'.format(
+                    index + self.paddress, ord(b)))
+                index += 1
+
+        # Add relocation and line number tables
+        if len(self.relocations) > 0:
+            text.append('\nRelocations Table\n')
+            text.append(
+                'Address    Offset     Type                      Symbol\n')
+            for r in self.relocations:
+                text.append(str(r))
+                text.append('\n')
+        if len(self.linenumbers) > 0:
+            text.append('\nLine Number Table\n')
+            text.append('Line     Address  Symbol\n')
+            for l in self.linenumbers:
+                text.append(str(l))
                 text.append('\n')
         return ''.join(text)
-
-class CodeSection(Section):
-    '''Represents a code section in a COFF file.'''
-
-    def __init__(self, name, paddress, vaddress, flags):
-        Section.__init__(self, name, paddress, vaddress, flags)
-        self.data = []
-        self.relocations = []
-        self.linenumbers = []
-
-    @property
-    def size(self):
-        return len(self.data)
-
-    def __str__(self):
-        text = [Section.__str__(self), '\nData\n']
-        address = 0
-        for w in self.data:
-            text.append('{:06x}:  {:04x}\n'.format(address, w))
-            address += 2
-        text.append('\nRelocations Table\n')
-        text.append('Address    Offset     Type                      Symbol\n')
-        for r in self.relocations:
-            text.append(str(r))
-            text.append('\n')
-        text.append('\nLine Number Table\n')
-        text.append('Line     Address  Symbol\n')
-        for l in self.linenumbers:
-            text.append(str(l))
-            text.append('\n')
-            
-        return ''.join(text)
-
-class DataSection(Section):
-    '''Represents a data section in a COFF file.'''
-
-    def __init__(self, name, paddress, vaddress, size, flags):
-        Section.__init__(self, name, paddress, vaddress, flags)
-        self.size = size
 
 class Relocation(object):
     '''Represents a relocation entry in the COFF file.'''
@@ -334,12 +341,13 @@ class Coff(object):
                 '\nCOFF version         ', hex(_MAGIC),
                 '\nProcessor Type       ', self.processor,
                 '\nTime Stamp           ', self.timestamp.strftime('%c'),
-                '\nNumber of Sections   ', str(len(self.sections)),
+                # The null section must be substracted from the total number
+                '\nNumber of Sections   ', str(len(self.sections) - 1),
                 '\nNumber of Symbols    ', str(len(self.symbols)),
                 '\nCharacteristics      ', str(self.flags), '\n', '\n']
 
         # Add the sections
-        for s in self.sections:
+        for s in self.sections[1:]:
             text.append(str(s))
             text.append('\n')
 
@@ -457,12 +465,15 @@ def _readreloc(obj, section, stream, ptr, num):
                 Relocation(r_vaddr, symbol, r_offset, r_type))
             reloc_num += 1
     except struct.error:
-        error.fatalf(obj.filename, 'in section {}: truncated relocation '
-            'info at position {}'.format(section.name, reloc_num))
+        error.fatalf(obj.filename, "in section {b}'{name}'{re}: truncated "
+            "relocation info at position {pos}".format(
+            b=error.BOLD, re=error.RESET, name=section.name, pos=reloc_num))
     except IndexError:
-        error.fatalf(obj.filename, 'in section {}: relocation info at '
-            'position {} points to nonexistent symbol with index {}'.format(
-            section.name, reloc_num, r_symndx))
+        error.fatalf(obj.filename,
+            "in section {b}'{name}'{re}: relocation info at position {pos} "
+            "points to nonexistent symbol with index {idx}".format(
+            b=error.BOLD, re=error.RESET, name=section.name, pos=reloc_num,
+            idx=r_symndx))
 
 def _readlinenumbers(obj, section, stream, ptr, num):
     '''Read the line numbers table for a section.
@@ -474,7 +485,6 @@ def _readlinenumbers(obj, section, stream, ptr, num):
     num: number of line numbers entries.
     '''
     stream.seek(ptr)
-    linenumbers = []
     try:
         linenum_count = 0
         for i in range(num):
@@ -490,27 +500,27 @@ def _readlinenumbers(obj, section, stream, ptr, num):
                 LineNumber(src_symbol, l_lnno, l_paddr, l_flags, fcn_symbol))
             linenum_count += 1
     except struct.error:
-        error.fatalf(obj.filename, 'in section {}: truncated line number '
-            'info at position {}'.format(section.name, linenum_count))
+        error.fatalf(obj.filename, "in section {b}'{name}'{re}: truncated line"
+            " number info at position {pos}".format(b=error.BOLD,
+            re=error.RESET, name=section.name, pos=linenum_count))
     except IndexError:
-        error.fatalf(obj.filename, 'in section {}: line number info at '
-            'position {} points to nonexistent symbol with index {}'.format(
-            section.name, linenum_count, symindex))
+        error.fatalf(obj.filename, "in section {b}'{name}'{re}: line number "
+            "info at position {pos} points to nonexistent symbol with index "
+            "{idx}".format(b=error.BOLD, re=error.RESET, name=section.name,
+            pos=linenum_count, idx=symindex))
 
-def readcoff(filename):
+def readcoff(stream):
     '''Read the contents of a COFF file.
 
-    filename: a path to a file in the Microchip's COFF format.
+    stream: from where the COFF file is read.
     Return a Coff object with the contents of the COFF file.
     '''
+    filename = stream.name
     try:
-        f = None
-        f = open(filename, 'rb')
-
         # Read filehdr
         where = 'header'
         (f_magic, f_nscns, f_timdat, f_symptr, f_nsyms, f_opthdr, f_flags
-            ) = struct.unpack('=HHLLLHH', f.read(_HDR_SIZE))
+            ) = struct.unpack('=HHLLLHH', stream.read(_HDR_SIZE))
 
         # Check that it's a COFF file
         if f_magic != _MAGIC:
@@ -521,17 +531,17 @@ def readcoff(filename):
         if f_opthdr:
             where = 'optional header'
             (magic, vstamp, proc_type, rom_width_bits, ram_width_bits
-                ) = struct.unpack('=HH2xHLL2x', f.read(f_opthdr))
+                ) = struct.unpack('=HH2xHLL2x', stream.read(f_opthdr))
             obj = Coff(filename, timestamp, f_flags, magic, vstamp,
                 _PROCESSORS[proc_type], rom_width_bits, ram_width_bits)
         else:
             obj = Coff(filename, timestamp, f_flags)
 
         # Read the strings table
-        _readstrtable(obj, f, f_symptr + _SYMENT_SIZE * f_nsyms)
+        _readstrtable(obj, stream, f_symptr + _SYMENT_SIZE * f_nsyms)
 
         # Read the symbols table
-        _readsymtable(obj, f, f_symptr, f_nsyms)
+        _readsymtable(obj, stream, f_symptr, f_nsyms)
 
         # Read the sections
         section_num = 0
@@ -539,34 +549,33 @@ def readcoff(filename):
             where = 'section header at position {}'.format(section_num)
             (_s_name, s_paddr, s_vaddr, s_size, s_scnptr, s_relptr, s_lnnoptr,
                 s_nreloc, s_nlnno, s_flags
-                ) = struct.unpack('=8sLLLLLLHHL', f.read(_SHDR_SIZE))
+                ) = struct.unpack('=8sLLLLLLHHL', stream.read(_SHDR_SIZE))
             name = obj.getstring(_s_name)
-            # Identify the type of section
-            if s_flags & _STYP_TEXT:
-                # Code section
-                # Check the size of the data (must be even)
-                if s_size % 2 != 0:
-                    error.fatalf(filename,
-                        'in section {}: wrong data size'.format(name))
-                section = CodeSection(name, s_paddr, s_vaddr, s_flags)
-                # Read the code
-                cur = f.tell()
-                f.seek(s_scnptr)
+            section = Section(name, s_paddr, s_vaddr, s_flags)
+            # For the code sections, check that the size of the data is even
+            if section.iscode() and s_size % 2 != 0:
+                error.fatalf(filename, "in section {b}'{name}'{re}: code "
+                    "section data size must be multiple of 2".format(
+                    b=error.BOLD, re=error.RESET, name=name))
+            # For the udata section, set size attribure. For the others, read
+            # the raw data
+            if section.isudata():
+                section.size = s_size
+            elif section.iscode() or section.isprogramdata():
+                cur = stream.tell()
+                stream.seek(s_scnptr)
                 where = 'data from section {}'.format(name)
-                section.data = list(struct.unpack(
-                    '={}H'.format(int(s_size/2)), f.read(s_size)))
+                section.data = bytearray(stream.read(s_size))
                 # Read the relocation table for this section
-                _readreloc(obj, section, f, s_relptr, s_nreloc)
+                _readreloc(obj, section, stream, s_relptr, s_nreloc)
                 # Read the line numbers table for this section
-                _readlinenumbers(obj, section, f, s_lnnoptr, s_nlnno)
+                _readlinenumbers(obj, section, stream, s_lnnoptr, s_nlnno)
                 # Restore the file pointer
-                f.seek(cur)
-            elif s_flags & _STYP_BSS:
-                # Uninitialized data section
-                section = DataSection(name, s_paddr, s_vaddr, s_size, s_flags)
+                stream.seek(cur)
             else:
-                error.fatalf(filename,
-                    'in section {}: unimplemented type'.format(name))
+                error.fatalf(filename, "in section {b}'{name}'{re}: "
+                    "unimplemented section type".format(
+                    b=error.BOLD, re=error.RESET, name=name))
             obj.addsection(section)
             section_num += 1
 
@@ -577,22 +586,17 @@ def readcoff(filename):
                 # May throw IndexError
                 s.section = obj.sections[s.section]
             symbol_num += 1
-        f.close()
         return obj
-    except IOError as ioe:
-        error.fatal(ioe)
     except struct.error:
         error.fatalf(filename, 'truncated {}'.format(where))
     except UnicodeDecodeError:
         error.fatalf(filename, 'in section at position {}: non ASCII '
             'characters in section name'.format(section_num))
     except IndexError:
-        error.fatalf(filename, 'in symbol {}: points to nonexistent section '
-            'with index {}'.format(s.name, s.section))
+        error.fatalf(filename, "in symbol '{b}'{name}'{re}': points to "
+            "nonexistent section with index {idx}".format(
+            b=error.BOLD, re=error.RESET, name=s.name, idx=s.section))
     except Exception as e:
         error.fatalf(filename, 'in section at position {}: {}'.format(
             section_num, e))
-    finally:
-        if f is not None:
-            f.close()
 

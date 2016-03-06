@@ -35,39 +35,55 @@ PROGNAME = sys.argv[0]
 
 # Use colors if in a terminal
 if sys.stdout.isatty():
-    ERROR = '\033[1m\033[31merror\033[0m'
-    WARN = '\033[1m\033[33mwarning\033[0m'
-    FATAL = '\033[1m\033[31mfatal\033[0m'
+    RED = '\033[31m'
+    YELLOW = '\033[33m'
+    CYAN = '\033[36m'
+    BOLD = '\033[1m'
+    RESET = '\033[0m'
 else:
-    ERROR = 'error'
-    WARN = 'warning'
-    FATAL = 'fatal'
+    RED = ''
+    YELLOW = ''
+    CYAN = ''
+    BOLD = ''
+    RESET = ''
+
+errors = 0
 
 def fatal(msg):
     '''Prints a fatal error and exits.'''
-    print('{prog}: {fatal}: {msg}'.format(prog=PROGNAME, msg=msg, fatal=FATAL),
-        file=sys.stderr)
+    print('{b}{prog}: {r}fatal:{re} {msg}'.format(prog=PROGNAME, msg=msg,
+        b=BOLD, r=RED, re=RESET), file=sys.stderr)
     exit(1)
 
 def fatalf(filename, msg):
     '''Prints a fatal error occurred while treating a given file and exits.'''
-    print('{file}: {fatal}: {msg}'.format(file=filename, msg=msg, fatal=FATAL),
-        file=sys.stderr)
+    print('{b}{file}: {r}fatal:{re} {msg}'.format(file=filename, msg=msg,
+        b=BOLD, r=RED, re=RESET), file=sys.stderr)
     exit(1)
 
 def errorf(filename, msg):
     '''Prints an error message.'''
-    print('{file}: {error}: {msg}'.format(file=filename, msg=msg, error=ERROR),
-        file=sys.stderr)
+    global errors
+    print('{b}{file}: {r}error:{re} {msg}'.format(file=filename, msg=msg,
+        b=BOLD, r=RED, re=RESET), file=sys.stderr)
+    errors += 1
 
 def errorfa(filename, section, offset, msg):
     '''Prints an error message.'''
-    print('{file}:{section}+{offset:#x}: {error}: {msg}'.format(
-        file=filename, section=section, offset=offset, msg=msg, error=ERROR),
-        file=sys.stderr)
+    global errors
+    print('{b}{file}:{section}+{offset:#x}: {r}error:{re} {msg}'.format(
+        file=filename, section=section, offset=offset, msg=msg, b=BOLD, r=RED,
+        re=RESET), file=sys.stderr)
+    errors += 1
 
 def warnf(filename, msg):
     '''Prints a warning message.'''
-    print('{file}: {warn}: {msg}'.format(file=filename, msg=msg, warn=WARN),
-        file=sys.stderr)
+    print('{b}{file}: {y}warning:{re} {msg}'.format(file=filename, msg=msg,
+        b=BOLD, y=YELLOW, re=RESET), file=sys.stderr)
+
+def notefa(filename, section, offset, msg):
+    '''Prints a note.'''
+    print('{b}{file}:{section}+{offset:#x}: {c}note:{re} {msg}'.format(
+        file=filename, section=section, offset=offset, msg=msg, b=BOLD, c=CYAN,
+        re=RESET), file=sys.stderr)
 
