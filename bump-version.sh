@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SCRIPTS="picc picc-objdump"
-MODULES=lib/picc/*.py
+SCRIPTS="bin/picc bin/picc-objdump"
+MODULES="picc/*.py"
 
 if [ "$#" -ne 1 ]; then
     echo "usage: bump-version.sh VERSION"
