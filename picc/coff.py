@@ -26,7 +26,7 @@ from . import error
 
 __author__ = 'Antonio Serrano Hernandez'
 __copyright__ = 'Copyright (C) 2016 Antonio Serrano Hernandez'
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 __license__ = 'GPL'
 __maintainer__ = 'Antonio Serrano Hernandez'
 __email__ = 'toni.serranoh@gmail.com'
@@ -160,14 +160,14 @@ class Section(object):
             text.append('\nData\n')
             while index < len(self.data):
                 text.append('{:06x}:  {:02x}{:02x}\n'.format(
-                    index + self.paddress, ord(self.data[index + 1]),
-                    ord(self.data[index])))
+                    index + self.paddress, self.data[index + 1],
+                    self.data[index]))
                 index += 2
         elif self.isprogramdata():
             text.append('\nData\n')
             for b in self.data:
                 text.append('{:06x}:  {:04x}\n'.format(
-                    index + self.paddress, ord(b)))
+                    index + self.paddress, b))
                 index += 1
 
         # Add relocation and line number tables
