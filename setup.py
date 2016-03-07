@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='picc',
-      version='0.2.0',
+      version='0.2.1',
       description='A linker for PIC relocatable objects in COFF format',
       author='Antonio Serrano Hernandez',
       author_email='toni.serranoh@gmail.com',
