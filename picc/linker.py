@@ -1,5 +1,5 @@
 
-'''linker.py - links Microchip's PIC objects in COFF format.
+'''links Microchip's PIC objects in COFF format.
 
 Copyright 2016 Antonio Serrano Hernandez
 
@@ -378,7 +378,9 @@ def _applyrelocations(objects, externalsyms, picinfo):
                             noteseen = True
                     continue
                 symbol = externalsyms[symbol.name]
-            value = symbol.section.paddress + symbol.value + r.offset
+            value = symbol.value + r.offset
+            if not symbol.section.isabsolute():
+                value += symbol.section.paddress
             # The passed addr parameter must be the address of the first byte
             # of the current instruction. As addr is in fact the index of a
             # word, this value must be multiplied by two.
