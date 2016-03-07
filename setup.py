@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='picc',
-      version='0.1.0',
+      version='0.2.0',
       description='A linker for PIC relocatable objects in COFF format',
       author='Antonio Serrano Hernandez',
       author_email='toni.serranoh@gmail.com',
@@ -11,8 +11,7 @@ setup(name='picc',
       license='GPLv3',
       requires=['intelhex'],
       packages=['picc'],
-      package_dir={'': 'lib'},
-      scripts=['picc', 'picc-objdump'],
+      scripts=['bin/picc', 'bin/picc-objdump'],
       data_files=['data/processors.xml'],
      )
 

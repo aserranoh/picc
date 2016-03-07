@@ -1,5 +1,5 @@
 
-'''error.py - Inspect Microchip's PIC objects in COFF format.
+'''Print error messages.
 
 Copyright 2016 Antonio Serrano Hernandez
 
@@ -25,7 +25,7 @@ import sys
 
 __author__ = 'Antonio Serrano Hernandez'
 __copyright__ = 'Copyright (C) 2016 Antonio Serrano Hernandez'
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __license__ = 'GPL'
 __maintainer__ = 'Antonio Serrano Hernandez'
 __email__ = 'toni.serranoh@gmail.com'
@@ -33,31 +33,57 @@ __status__ = 'Development'
 
 PROGNAME = sys.argv[0]
 
+# Use colors if in a terminal
+if sys.stdout.isatty():
+    RED = '\033[31m'
+    YELLOW = '\033[33m'
+    CYAN = '\033[36m'
+    BOLD = '\033[1m'
+    RESET = '\033[0m'
+else:
+    RED = ''
+    YELLOW = ''
+    CYAN = ''
+    BOLD = ''
+    RESET = ''
+
+errors = 0
+
 def fatal(msg):
     '''Prints a fatal error and exits.'''
-    print('{prog}: fatal: {msg}'.format(prog=PROGNAME, msg=msg),
-        file=sys.stderr)
+    print('{b}{prog}: {r}fatal:{re} {msg}'.format(prog=PROGNAME, msg=msg,
+        b=BOLD, r=RED, re=RESET), file=sys.stderr)
     exit(1)
 
 def fatalf(filename, msg):
     '''Prints a fatal error occurred while treating a given file and exits.'''
-    print('{file}: fatal: {msg}'.format(file=filename, msg=msg),
-        file=sys.stderr)
+    print('{b}{file}: {r}fatal:{re} {msg}'.format(file=filename, msg=msg,
+        b=BOLD, r=RED, re=RESET), file=sys.stderr)
     exit(1)
 
 def errorf(filename, msg):
     '''Prints an error message.'''
-    print('{file}: error: {msg}'.format(file=filename, msg=msg),
-        file=sys.stderr)
+    global errors
+    print('{b}{file}: {r}error:{re} {msg}'.format(file=filename, msg=msg,
+        b=BOLD, r=RED, re=RESET), file=sys.stderr)
+    errors += 1
 
 def errorfa(filename, section, offset, msg):
     '''Prints an error message.'''
-    print('{file}:{section}+{offset:#x}: error: {msg}'.format(
-        file=filename, section=section, offset=offset, msg=msg),
-        file=sys.stderr)
+    global errors
+    print('{b}{file}:{section}+{offset:#x}: {r}error:{re} {msg}'.format(
+        file=filename, section=section, offset=offset, msg=msg, b=BOLD, r=RED,
+        re=RESET), file=sys.stderr)
+    errors += 1
 
 def warnf(filename, msg):
     '''Prints a warning message.'''
-    print('{file}: warning: {msg}'.format(file=filename, msg=msg),
-        file=sys.stderr)
+    print('{b}{file}: {y}warning:{re} {msg}'.format(file=filename, msg=msg,
+        b=BOLD, y=YELLOW, re=RESET), file=sys.stderr)
+
+def notefa(filename, section, offset, msg):
+    '''Prints a note.'''
+    print('{b}{file}:{section}+{offset:#x}: {c}note:{re} {msg}'.format(
+        file=filename, section=section, offset=offset, msg=msg, b=BOLD, c=CYAN,
+        re=RESET), file=sys.stderr)
 

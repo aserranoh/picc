@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-
-'''picc - PIC microcontrollers linker.
-
-Links several COFF objects in Microchip's PIC assembler into a single
-program in the Intel HEX format.
+'''Package that implements the functionalities of picc.
 
 Copyright 2016 Antonio Serrano Hernandez
 
@@ -24,18 +19,9 @@ along with picc; see the file COPYING.  If not, see
 <http://www.gnu.org/licenses/>.
 '''
 
-import argparse
-import os
-import sys
-# Temporary
-sys.path.append('./modules')
-import picc.coff as coff
-import picc.linker as linker
-
-__script__ = 'picc'
 __author__ = 'Antonio Serrano Hernandez'
 __copyright__ = 'Copyright (C) 2016 Antonio Serrano Hernandez'
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 __license__ = 'GPL'
 __maintainer__ = 'Antonio Serrano Hernandez'
 __email__ = 'toni.serranoh@gmail.com'
@@ -54,20 +40,4 @@ HELP_EPILOG = '''\
 Report bugs to: {email}
 picc home page: {homepage}
 '''.format(email=__email__, homepage=__homepage__)
-
-def main():
-    parser = argparse.ArgumentParser(prog=__script__, epilog=HELP_EPILOG,
-        formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('objfiles', help='object files to link', nargs='+')
-    parser.add_argument('-o', '--output',
-        help='alternate name for output file', default='a.hex')
-    parser.add_argument('--version', action='version', version=VERSION_STRING)
-    args = parser.parse_args()
-
-    objects = [coff.readcoff(f) for f in args.objfiles]
-    h = linker.link(objects)
-    h.write_hex_file(args.output)
-
-if __name__ == '__main__':
-    main()
 
