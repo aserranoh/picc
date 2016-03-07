@@ -30,7 +30,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(sys.argv[0]), '..'))
 import picc
-from picc import coff, error, linker
+from picc import ar, coff, error, linker
 
 __script__ = 'picc'
 __author__ = 'Antonio Serrano Hernandez'
@@ -56,7 +56,10 @@ def main():
     try:
         for o in args.objfiles:
             f = open(o, 'rb')
-            objects.append(coff.readcoff(f))
+            if ar.isar(f):
+                objects.extend(ar.extract(f))
+            else:
+                objects.append(coff.readcoff(f))
             f.close()
         h = linker.link(objects)
         if not error.errors:

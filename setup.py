@@ -11,8 +11,7 @@ setup(name='picc',
       license='GPLv3',
       requires=['intelhex'],
       packages=['picc'],
-      package_dir={'': 'lib'},
-      scripts=['picc', 'picc-objdump'],
+      scripts=['bin/picc', 'bin/picc-objdump'],
       data_files=['data/processors.xml'],
      )
 

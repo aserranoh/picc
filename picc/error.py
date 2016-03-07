@@ -1,5 +1,5 @@
 
-'''error.py - Inspect Microchip's PIC objects in COFF format.
+'''Print error messages.
 
 Copyright 2016 Antonio Serrano Hernandez
 
