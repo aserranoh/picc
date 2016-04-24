@@ -7,7 +7,7 @@ DATAROOTDIR = 'share'
 PKGNAME = 'picc'
 
 setup(name=PKGNAME,
-      version='0.2.1',
+      version='0.2.2',
       description='A linker for PIC relocatable objects in COFF format',
       author='Antonio Serrano Hernandez',
       author_email='toni.serranoh@gmail.com',
