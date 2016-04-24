@@ -73,7 +73,9 @@ _RELOCT_SCNEND_LFSR2 = 32
 
 # The argument of the lambda functions is a RelocationContext object.
 
-unimplemented_patch = lambda c: error.fatal('unimplemented patch')
+def unimplemented_patch(patch_code):
+    return lambda c: error.fatalf(c.filename,
+        'unimplemented relocation {}'.format(patch_code))
 
 def bra_rcall_patch(c):
     opcode = c.opcode
@@ -98,19 +100,19 @@ def condbra_patch(c):
     return opcode
 
 _RELOCT_DICT = {
-    _RELOCT_CALL: unimplemented_patch,
-    _RELOCT_GOTO: lambda c: c.opcode | (c.value & 0xff),
-    _RELOCT_HIGH: unimplemented_patch,
-    _RELOCT_LOW: unimplemented_patch,
-    _RELOCT_P: unimplemented_patch,
-    _RELOCT_BANKSEL: unimplemented_patch,
-    _RELOCT_PAGESEL: unimplemented_patch,
-    _RELOCT_ALL: unimplemented_patch,
-    _RELOCT_IBANKSEL: unimplemented_patch,
+    _RELOCT_CALL: lambda c: c.opcode | (int(c.value/2) & 0xff),
+    _RELOCT_GOTO: lambda c: c.opcode | (int(c.value/2) & 0xff),
+    _RELOCT_HIGH: unimplemented_patch(_RELOCT_HIGH),
+    _RELOCT_LOW: unimplemented_patch(_RELOCT_LOW),
+    _RELOCT_P: unimplemented_patch(_RELOCT_P),
+    _RELOCT_BANKSEL: unimplemented_patch(_RELOCT_BANKSEL),
+    _RELOCT_PAGESEL: unimplemented_patch(_RELOCT_PAGESEL),
+    _RELOCT_ALL: unimplemented_patch(_RELOCT_ALL),
+    _RELOCT_IBANKSEL: unimplemented_patch(_RELOCT_IBANKSEL),
     _RELOCT_F: lambda c: c.opcode | (c.value & 0xff),
-    _RELOCT_TRIS: unimplemented_patch,
-    _RELOCT_MOVLR: unimplemented_patch,
-    _RELOCT_MOVLB: unimplemented_patch,
+    _RELOCT_TRIS: unimplemented_patch(_RELOCT_TRIS),
+    _RELOCT_MOVLR: unimplemented_patch(_RELOCT_MOVLR),
+    _RELOCT_MOVLB: unimplemented_patch(_RELOCT_MOVLB),
     _RELOCT_GOTO2: lambda c: c.opcode | ((c.value >> 8) & 0xfff),
     _RELOCT_FF1: lambda c: c.opcode | (c.value & 0xfff),
     _RELOCT_FF2: lambda c: c.opcode | (c.value & 0xfff),
@@ -118,19 +120,19 @@ _RELOCT_DICT = {
     _RELOCT_LFSR2: lambda c: c.opcode | (c.value & 0xff),
     _RELOCT_BRA_RCALL: bra_rcall_patch,
     _RELOCT_CONDBRA: condbra_patch,
-    _RELOCT_UPPER: unimplemented_patch,
+    _RELOCT_UPPER: unimplemented_patch(_RELOCT_UPPER),
     _RELOCT_ACCESS: lambda c: c.opcode & 0xfeff if c.value < c.picinfo.access
         else c.opcode | 0x0100,
-    _RELOCT_PAGESEL_WREG: unimplemented_patch,
-    _RELOCT_PAGESEL_BITS: unimplemented_patch,
-    _RELOCT_SCNSZ_LOW: unimplemented_patch,
-    _RELOCT_SCNSZ_HIGH: unimplemented_patch,
-    _RELOCT_SCNSZ_UPPER: unimplemented_patch,
-    _RELOCT_SCNEND_LOW: unimplemented_patch,
-    _RELOCT_SCNEND_HIGH: unimplemented_patch,
-    _RELOCT_SCNEND_UPPER: unimplemented_patch,
-    _RELOCT_SCNEND_LFSR1: unimplemented_patch,
-    _RELOCT_SCNEND_LFSR2: unimplemented_patch,
+    _RELOCT_PAGESEL_WREG: unimplemented_patch(_RELOCT_PAGESEL_WREG),
+    _RELOCT_PAGESEL_BITS: unimplemented_patch(_RELOCT_PAGESEL_BITS),
+    _RELOCT_SCNSZ_LOW: unimplemented_patch(_RELOCT_SCNSZ_LOW),
+    _RELOCT_SCNSZ_HIGH: unimplemented_patch(_RELOCT_SCNSZ_HIGH),
+    _RELOCT_SCNSZ_UPPER: unimplemented_patch(_RELOCT_SCNSZ_UPPER),
+    _RELOCT_SCNEND_LOW: unimplemented_patch(_RELOCT_SCNEND_LOW),
+    _RELOCT_SCNEND_HIGH: unimplemented_patch(_RELOCT_SCNEND_HIGH),
+    _RELOCT_SCNEND_UPPER: unimplemented_patch(_RELOCT_SCNEND_UPPER),
+    _RELOCT_SCNEND_LFSR1: unimplemented_patch(_RELOCT_SCNEND_LFSR1),
+    _RELOCT_SCNEND_LFSR2: unimplemented_patch(_RELOCT_SCNEND_LFSR2),
 }
 
 class _RelocationContext(object):

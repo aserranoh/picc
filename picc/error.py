@@ -53,13 +53,13 @@ def fatal(msg):
     '''Prints a fatal error and exits.'''
     print('{b}{prog}: {r}fatal:{re} {msg}'.format(prog=PROGNAME, msg=msg,
         b=BOLD, r=RED, re=RESET), file=sys.stderr)
-    exit(1)
+    sys.exit(1)
 
 def fatalf(filename, msg):
     '''Prints a fatal error occurred while treating a given file and exits.'''
     print('{b}{file}: {r}fatal:{re} {msg}'.format(file=filename, msg=msg,
         b=BOLD, r=RED, re=RESET), file=sys.stderr)
-    exit(1)
+    sys.exit(1)
 
 def errorf(filename, msg):
     '''Prints an error message.'''

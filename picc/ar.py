@@ -68,6 +68,9 @@ def extract(stream):
                 bytestream = io.BytesIO(stream.read(size))
                 bytestream.name = stream.name
                 objects.append(coff.readcoff(bytestream))
+                # If size is odd, read a padding byte
+                if size % 2:
+                    stream.read(1)
             hdr = stream.read(_AR_HEADER_SIZE).decode('ascii')
         if len(hdr):
             error.fatalf(stream.name, 'truncated ar header')

@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
+import os
 
-setup(name='picc',
+DATAROOTDIR = 'share'
+PKGNAME = 'picc'
+
+setup(name=PKGNAME,
       version='0.2.1',
       description='A linker for PIC relocatable objects in COFF format',
       author='Antonio Serrano Hernandez',
@@ -12,6 +16,7 @@ setup(name='picc',
       requires=['intelhex'],
       packages=['picc'],
       scripts=['bin/picc', 'bin/picc-objdump'],
-      data_files=['data/processors.xml'],
+      data_files=[(os.path.join(DATAROOTDIR, PKGNAME),
+          ['data/processors.xml'])],
      )
 
