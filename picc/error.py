@@ -25,7 +25,7 @@ import sys
 
 __author__ = 'Antonio Serrano Hernandez'
 __copyright__ = 'Copyright (C) 2016 Antonio Serrano Hernandez'
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __license__ = 'GPL'
 __maintainer__ = 'Antonio Serrano Hernandez'
 __email__ = 'toni.serranoh@gmail.com'
