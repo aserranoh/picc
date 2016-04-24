@@ -26,7 +26,7 @@ from . import coff, error
 
 __author__ = 'Antonio Serrano Hernandez'
 __copyright__ = 'Copyright (C) 2016 Antonio Serrano Hernandez'
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __license__ = 'GPL'
 __maintainer__ = 'Antonio Serrano Hernandez'
 __email__ = 'toni.serranoh@gmail.com'
@@ -68,6 +68,9 @@ def extract(stream):
                 bytestream = io.BytesIO(stream.read(size))
                 bytestream.name = stream.name
                 objects.append(coff.readcoff(bytestream))
+                # If size is odd, read a padding byte
+                if size % 2:
+                    stream.read(1)
             hdr = stream.read(_AR_HEADER_SIZE).decode('ascii')
         if len(hdr):
             error.fatalf(stream.name, 'truncated ar header')

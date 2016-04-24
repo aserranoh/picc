@@ -25,7 +25,7 @@ import sys
 
 __author__ = 'Antonio Serrano Hernandez'
 __copyright__ = 'Copyright (C) 2016 Antonio Serrano Hernandez'
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __license__ = 'GPL'
 __maintainer__ = 'Antonio Serrano Hernandez'
 __email__ = 'toni.serranoh@gmail.com'
@@ -53,13 +53,13 @@ def fatal(msg):
     '''Prints a fatal error and exits.'''
     print('{b}{prog}: {r}fatal:{re} {msg}'.format(prog=PROGNAME, msg=msg,
         b=BOLD, r=RED, re=RESET), file=sys.stderr)
-    exit(1)
+    sys.exit(1)
 
 def fatalf(filename, msg):
     '''Prints a fatal error occurred while treating a given file and exits.'''
     print('{b}{file}: {r}fatal:{re} {msg}'.format(file=filename, msg=msg,
         b=BOLD, r=RED, re=RESET), file=sys.stderr)
-    exit(1)
+    sys.exit(1)
 
 def errorf(filename, msg):
     '''Prints an error message.'''

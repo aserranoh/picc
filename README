@@ -16,11 +16,9 @@ picc is a linker for PIC microcontrollers' code objects in the COFF format.
 
 # Building and Installing picc
 
-To build and install picc, follow the well-known sequence of commands:
+To install picc, just execute the command:
 
-    ./configure
-    make
-    sudo make install
+    python setup.py install
 
 # Usage
 
