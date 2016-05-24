@@ -113,7 +113,7 @@ _RELOCT_DICT = {
     _RELOCT_TRIS: unimplemented_patch(_RELOCT_TRIS),
     _RELOCT_MOVLR: unimplemented_patch(_RELOCT_MOVLR),
     _RELOCT_MOVLB: unimplemented_patch(_RELOCT_MOVLB),
-    _RELOCT_GOTO2: lambda c: c.opcode | ((c.value >> 8) & 0xfff),
+    _RELOCT_GOTO2: lambda c: c.opcode | ((int(c.value/2) >> 8) & 0xfff),
     _RELOCT_FF1: lambda c: c.opcode | (c.value & 0xfff),
     _RELOCT_FF2: lambda c: c.opcode | (c.value & 0xfff),
     _RELOCT_LFSR1: lambda c: c.opcode | ((c.value >> 8) & 0x0f),
