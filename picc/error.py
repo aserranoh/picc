@@ -49,6 +49,29 @@ else:
 
 errors = 0
 
+class Error(object):
+    def __init__(self):
+        self.errcount = 0
+    def error(self, msg, coord):
+        msg = msg.replace('#', BOLD)
+        msg = msg.replace('$', RESET)
+        print('{b}{file}:{line}:{col}: {r}error: {re}{msg}'.format(
+            b=BOLD, file=coord.file, line=coord.line, col=coord.column, r=RED,
+            re=RESET, msg=msg), file=sys.stderr)
+        self.errcount += 1
+    def note(self, msg, coord):
+        msg = msg.replace('#', BOLD)
+        msg = msg.replace('$', RESET)
+        print('{b}{file}:{line}:{col}: {c}note: {re}{msg}'.format(
+            b=BOLD, file=coord.file, line=coord.line, col=coord.column,
+            c=CYAN, re=RESET, msg=msg), file=sys.stderr)
+    def warn(self, msg, coord):
+        msg = msg.replace('#', BOLD)
+        msg = msg.replace('$', RESET)
+        print('{b}{file}:{line}:{col}: {y}warning: {re}{msg}'.format(
+            b=BOLD, file=coord.file, line=coord.line, col=coord.column,
+            y=YELLOW, re=RESET, msg=msg), file=sys.stderr)
+
 def fatal(msg):
     '''Prints a fatal error and exits.'''
     print('{b}{prog}: {r}fatal:{re} {msg}'.format(prog=PROGNAME, msg=msg,

@@ -24,13 +24,15 @@ along with picc; see the file COPYING.  If not, see
 <http://www.gnu.org/licenses/>.
 '''
 
+from __future__ import print_function
 import argparse
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(sys.argv[0]), '..'))
 import picc
-from picc import ar, coff, error, linker
+from picc import compiler, ar, coff, error, linker
 
 __script__ = 'picc'
 __author__ = 'Antonio Serrano Hernandez'
@@ -42,17 +44,83 @@ __email__ = 'toni.serranoh@gmail.com'
 __status__ = 'Development'
 __homepage__ = 'https://github.com/aserranoh/picc'
 
+PREPROCESS, COMPILE, ASSEMBLE, LINK = range(4)
+
+class CompilerPipeline(object):
+    def __init__(self, stop, ofile=None, include=[], verbose=False):
+        self.stop = stop
+        self.ofile = ofile
+        self.include = include
+        self.verbose = verbose
+    def process(self, ifile):
+        if ifile.endswith('.c'):
+            self._preprocess(ifile)
+        elif ifile.endswith('.i') and self.stop >= COMPILE:
+            self._compile(ifile)
+        elif ifile.endswith('.s') and self.stop >= ASSEMBLE:
+            self._assemble(ifile)
+        elif self.stop == LINK:
+            self._prepare_for_link(ifile)
+    def _preprocess(self, ifile):
+        '''Preprocess the input file and continue to the next stages.'''
+        # The preprocessing at this stage is only done if it is the last
+        # stage to execute. If not, it is done together with the compilation
+        # (parsing) by the pycparser module
+        if self.stop == PREPROCESS:
+            cmd = ['cpp']
+            for path in self.include:
+                cmd.append('-I')
+                cmd.append(path)
+            cmd.append(ifile)
+            if self.ofile is not None:
+                cmd.append(self.ofile)
+            if self.verbose:
+                print(' '.join(cmd), file=sys.stderr)
+            if subprocess.call(cmd):
+                sys.exit(1)
+        else:
+            self._compile(ifile)
+    def _compile(self, ifile):
+        c = compiler.Compiler(ifile, self.include)
+        unit = c.compile()
+        if self.stop > COMPILE:
+            self._assemble(ifile)
+    def _assemble(self, ifile):
+        print('assembling {}'.format(ifile))
+        if self.stop > ASSEMBLE:
+            self._prepare_for_link(ifile)
+    def _prepare_for_link(self, ifile):
+        if self.stop == LINK:
+            print('preparing for linking {}'.format(ifile))
+
 def main():
     parser = argparse.ArgumentParser(prog=__script__, epilog=picc.HELP_EPILOG,
         formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('objfiles', help='object files to link', nargs='+')
-    parser.add_argument('-o', '--output',
-        help='alternate name for output file', default='a.hex')
+    parser.add_argument('file', nargs='+', help='Files to process')
+    parser.add_argument('-c', action='store_const', dest='stop',
+        const=ASSEMBLE, help='Compile and assemble, but do not link')
+    parser.add_argument('-E', action='store_const', dest='stop',
+        const=PREPROCESS,
+        help='Preprocess only; do not compile, assemble or link')
+    parser.add_argument('-I', metavar='dir', action='append', dest='include',
+        help='Add <dir> to the end of the main include path')
+    parser.add_argument('-o', metavar='output', dest='output',
+        help='Place the output into <output>')
+    parser.add_argument('-S', action='store_const', dest='stop', const=COMPILE,
+        help='Compile only; do not assemble or link')
+    parser.add_argument('-v', action='store_true', dest='verbose',
+        help='Display the programs invoked by the compiler')
     parser.add_argument('--version', action='version',
         version=picc.VERSION_STRING)
     args = parser.parse_args()
+    if args.stop is None: args.stop = LINK
+    if args.include is None: args.include = []
 
-    objects = []
+    # If there's no input files, an error is given by parse_args.
+    c = CompilerPipeline(args.stop, args.output, args.include, args.verbose)
+    for f in args.file:
+        c.process(f)
+    '''objects = []
     try:
         for o in args.objfiles:
             f = open(o, 'rb')
@@ -65,7 +133,7 @@ def main():
         if not error.errors:
             h.write_hex_file(args.output)
     except IOError as ioe:
-        error.fatal(ioe)
+        error.fatal(ioe)'''
 
 if __name__ == '__main__':
     main()
